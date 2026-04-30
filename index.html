@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Food Wheel Spinner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0e17;
+      --surface: #1a1929;
+      --accent1: #ff6b6b;
+      --accent2: #ffd93d;
+      --accent3: #6bcb77;
+      --accent4: #4d96ff;
+      --text: #fffffe;
+      --subtext: #a7a9be;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 48px;
+      overflow-x: hidden;
+      background-image: radial-gradient(ellipse at 20% 10%, rgba(77,150,255,0.08) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 80%, rgba(255,107,107,0.08) 0%, transparent 60%);
+    }
+
+    h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent1));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: var(--subtext);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 40px;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    .wheels-container {
+      display: flex;
+      gap: 60px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .wheel-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .wheel-label {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.25rem;
+      letter-spacing: 1px;
+      color: var(--subtext);
+      text-transform: uppercase;
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: 300px;
+      height: 300px;
+    }
+
+    canvas {
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.06),
+                  0 16px 48px rgba(0,0,0,0.5);
+      display: block;
+    }
+
+    /* Pointer arrow */
+    .pointer {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 28px solid var(--accent2);
+      filter: drop-shadow(0 2px 6px rgba(255,217,61,0.6));
+      z-index: 10;
+    }
+
+    /* Center cap */
+    .center-cap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 36px;
+      height: 36px;
+      background: var(--bg);
+      border: 3px solid rgba(255,255,255,0.15);
+      border-radius: 50%;
+      z-index: 10;
+    }
+
+    .spin-btn {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+      padding: 13px 40px;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .spin-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.12);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .spin-btn:hover::after { opacity: 1; }
+    .spin-btn:active { transform: scale(0.96); }
+    .spin-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #btn-category {
+      background: linear-gradient(135deg, #ff6b6b, #ff9a5c);
+      color: #fff;
+      box-shadow: 0 6px 24px rgba(255,107,107,0.4);
+    }
+
+    #btn-food {
+      background: linear-gradient(135deg, #4d96ff, #6bcb77);
+      color: #fff;
+      box-shadow: 0 6px 24px rgba(77,150,255,0.4);
+    }
+
+    .result-badge {
+      min-width: 200px;
+      padding: 10px 22px;
+      border-radius: 50px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      transition: background 0.4s, border-color 0.4s;
+      letter-spacing: 0.5px;
+    }
+
+    .result-badge.active {
+      background: rgba(255,217,61,0.12);
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .arrow-hint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--subtext);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-top: -4px;
+    }
+
+    .arrow-hint svg { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+  <h1>🍽️ What's for Dinner?</h1>
+  <p class="subtitle">Spin the category, then spin the dish — let fate decide!</p>
+
+  <div class="wheels-container">
+
+    <!-- Wheel 1: Category -->
+    <div class="wheel-section">
+      <div class="wheel-label">Category</div>
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel1" width="300" height="300"></canvas>
+        <div class="center-cap"></div>
+      </div>
+      <button class="spin-btn" id="btn-category" onclick="spinWheel1()">🎲 Spin Category</button>
+      <div class="result-badge" id="result1">—</div>
+    </div>
+
+    <!-- Arrow between wheels -->
+    <div class="arrow-hint" style="margin-top:160px;">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M6 14h16M16 8l6 6-6 6" stroke="#a7a9be" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      then
+    </div>
+
+    <!-- Wheel 2: Food Item -->
+    <div class="wheel-section">
+      <div class="wheel-label">Dish</div>
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel2" width="300" height="300"></canvas>
+        <div class="center-cap"></div>
+      </div>
+      <button class="spin-btn" id="btn-food" id="btn-food" onclick="spinWheel2()" disabled>🍴 Spin Dish</button>
+      <div class="result-badge" id="result2">—</div>
+    </div>
+
+  </div>
+
+  <script>
+    // ─── DATA ──────────────────────────────────────────────────────────────────
+    const CATEGORIES = [
+      { label: "Italian",   color: "#e63946" },
+      { label: "Mexican",   color: "#f4a261" },
+      { label: "Japanese",  color: "#e9c46a" },
+      { label: "American",  color: "#52b788" },
+      { label: "Indian",    color: "#4cc9f0" },
+      { label: "Chinese",   color: "#a855f7" },
+      { label: "Middle\nEastern", color: "#f72585" },
+    ];
+
+    const FOODS = {
+      "Italian":      ["Margherita Pizza","Spaghetti Carbonara","Lasagna","Risotto","Tiramisu","Bruschetta","Osso Buco"],
+      "Mexican":      ["Tacos al Pastor","Enchiladas","Guacamole","Churros","Chile Relleno","Tamales","Pozole"],
+      "Japanese":     ["Sushi Rolls","Ramen","Tempura","Yakitori","Miso Soup","Takoyaki","Tonkatsu"],
+      "American":     ["BBQ Ribs","Clam Chowder","Philly Cheesesteak","Buffalo Wings","Mac & Cheese","Corn Dog","Apple Pie"],
+      "Indian":       ["Butter Chicken","Biryani","Palak Paneer","Samosa","Naan Bread","Dal Tadka","Gulab Jamun"],
+      "Chinese":      ["Kung Pao Chicken","Dim Sum","Peking Duck","Hot Pot","Mapo Tofu","Spring Rolls","Char Siu"],
+      "Middle\nEastern": ["Shawarma","Falafel","Hummus","Kebab","Baklava","Tabbouleh","Mansaf"],
+    };
+
+    // ─── WHEEL CLASS ───────────────────────────────────────────────────────────
+    class SpinWheel {
+      constructor(canvasId, segments) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.segments = segments;
+        this.angle = 0;          // current rotation (radians)
+        this.spinning = false;
+        this.selectedIndex = null;
+        this.draw();
+      }
+
+      draw() {
+        const ctx = this.ctx;
+        const W = this.canvas.width;
+        const cx = W / 2, cy = W / 2, r = W / 2 - 4;
+        const arc = (2 * Math.PI) / this.segments.length;
+
+        ctx.clearRect(0, 0, W, W);
+
+        this.segments.forEach((seg, i) => {
+          const startAngle = this.angle + i * arc;
+          const endAngle   = startAngle + arc;
+
+          // Slice fill
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, r, startAngle, endAngle);
+          ctx.closePath();
+          ctx.fillStyle = seg.color;
+          ctx.fill();
+
+          // Subtle slice border
+          ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Label
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(startAngle + arc / 2);
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#fff';
+          ctx.shadowColor = 'rgba(0,0,0,0.4)';
+          ctx.shadowBlur = 4;
+
+          const lines = seg.label.split('\n');
+          const lineH = 16;
+          const fontSize = lines.some(l => l.length > 8) ? 11 : 13;
+          ctx.font = `800 ${fontSize}px 'Nunito', sans-serif`;
+
+          lines.forEach((line, li) => {
+            const yOff = (li - (lines.length - 1) / 2) * lineH;
+            ctx.fillText(line, r - 14, yOff + 5);
+          });
+          ctx.restore();
+        });
+
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+      }
+
+      spin(onDone) {
+        if (this.spinning) return;
+        this.spinning = true;
+
+        const n = this.segments.length;
+        const arc = (2 * Math.PI) / n;
+
+        // Target: land on a random segment
+        const targetIndex = Math.floor(Math.random() * n);
+        // Extra full rotations for drama
+        const extraSpins = (5 + Math.floor(Math.random() * 5)) * 2 * Math.PI;
+        // Angle so targetIndex lands under the top pointer (which is at -π/2)
+        const targetAngle = -Math.PI / 2 - (targetIndex * arc + arc / 2);
+        // Normalise to always spin forward
+        const currentNorm = this.angle % (2 * Math.PI);
+        let delta = (targetAngle - currentNorm + extraSpins) % (2 * Math.PI) + extraSpins;
+        if (delta < 0) delta += 2 * Math.PI;
+
+        const totalAngle = delta + extraSpins;
+        const duration   = 3500 + Math.random() * 1000; // ms
+        const start      = performance.now();
+        const startAngle = this.angle;
+
+        const easeOut = t => 1 - Math.pow(1 - t, 4);
+
+        const animate = (now) => {
+          const elapsed  = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased    = easeOut(progress);
+
+          this.angle = startAngle + totalAngle * eased;
+          this.draw();
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            this.spinning = false;
+            this.selectedIndex = targetIndex;
+            onDone && onDone(targetIndex);
+          }
+        };
+
+        requestAnimationFrame(animate);
+      }
+    }
+
+    // ─── INIT WHEELS ───────────────────────────────────────────────────────────
+    let selectedCategory = null;
+    let wheel2 = null;
+
+    const wheel1 = new SpinWheel('wheel1', CATEGORIES);
+
+    // Initialize wheel2 with placeholder (greyed) segments
+    const PLACEHOLDER = Array.from({length: 7}, (_, i) => ({
+      label: '?',
+      color: `hsl(${i * 51}, 18%, 28%)`
+    }));
+    wheel2 = new SpinWheel('wheel2', PLACEHOLDER);
+
+    // ─── SPIN FUNCTIONS ────────────────────────────────────────────────────────
+    function spinWheel1() {
+      const btn = document.getElementById('btn-category');
+      const btnFood = document.getElementById('btn-food');
+      btn.disabled = true;
+      btnFood.disabled = true;
+      document.getElementById('result1').textContent = '…';
+      document.getElementById('result1').classList.remove('active');
+      document.getElementById('result2').textContent = '—';
+      document.getElementById('result2').classList.remove('active');
+
+      wheel1.spin((idx) => {
+        const cat = CATEGORIES[idx];
+        selectedCategory = cat.label.replace('\n', ' ');
+
+        document.getElementById('result1').textContent = '🍽 ' + selectedCategory;
+        document.getElementById('result1').classList.add('active');
+
+        // Build wheel2 with foods from this category
+        const keyMatch = Object.keys(FOODS).find(k => k.replace('\n',' ') === selectedCategory || k === cat.label);
+        const foods = FOODS[keyMatch] || [];
+        const foodSegments = foods.map((f, i) => ({
+          label: f,
+          color: CATEGORIES[i % CATEGORIES.length].color
+        }));
+
+        wheel2 = new SpinWheel('wheel2', foodSegments);
+
+        btn.disabled = false;
+        btnFood.disabled = false;
+      });
+    }
+
+    function spinWheel2() {
+      if (!selectedCategory) return;
+      const btn = document.getElementById('btn-food');
+      const btnCat = document.getElementById('btn-category');
+      btn.disabled = true;
+      btnCat.disabled = true;
+      document.getElementById('result2').textContent = '…';
+      document.getElementById('result2').classList.remove('active');
+
+      wheel2.spin((idx) => {
+        const keyMatch = Object.keys(FOODS).find(k => k.replace('\n',' ') === selectedCategory);
+        const foods = FOODS[keyMatch] || [];
+        const dish = foods[idx] || '?';
+
+        document.getElementById('result2').textContent = '🍴 ' + dish;
+        document.getElementById('result2').classList.add('active');
+
+        btn.disabled = false;
+        btnCat.disabled = false;
+      });
+    }
+  </script>
+</body>
+</html>
